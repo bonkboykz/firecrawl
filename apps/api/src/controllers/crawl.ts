@@ -57,6 +57,26 @@ export async function crawlController(req: Request, res: Response) {
     };
     const pageOptions = { ...defaultCrawlPageOptions, ...req.body.pageOptions };
 
+    if (Array.isArray(crawlerOptions.includes)) {
+      for (const x of crawlerOptions.includes) {
+        try {
+          new RegExp(x);
+        } catch (e) {
+          return res.status(400).json({ error: e.message });
+        }
+      }
+    }
+
+    if (Array.isArray(crawlerOptions.excludes)) {
+      for (const x of crawlerOptions.excludes) {
+        try {
+          new RegExp(x);
+        } catch (e) {
+          return res.status(400).json({ error: e.message });
+        }
+      }
+    }
+
     const limitCheck = req.body?.crawlerOptions?.limit ?? 1;
     const { success: creditsCheckSuccess, message: creditsCheckMessage, remainingCredits } =
       await checkTeamCredits(team_id, limitCheck);
@@ -72,6 +92,9 @@ export async function crawlController(req: Request, res: Response) {
     if (!url) {
       return res.status(400).json({ error: "Url is required" });
     }
+    if (typeof url !== "string") {
+      return res.status(400).json({ error: "URL must be a string" });
+    }
     try {
       url = checkAndUpdateURL(url).url;
     } catch (e) {
@@ -86,8 +109,6 @@ export async function crawlController(req: Request, res: Response) {
           "Firecrawl currently does not support social media scraping due to policy restrictions. We're actively working on building support for it.",
       });
     }
-
-    const mode = req.body.mode ?? "crawl";
 
     // if (mode === "single_urls" && !url.includes(",")) { // NOTE: do we need this?
     //   try {
@@ -142,7 +163,7 @@ export async function crawlController(req: Request, res: Response) {
       ? null
       : await crawler.tryGetSitemap();
 
-    if (sitemap !== null) {
+    if (sitemap !== null && sitemap.length > 0) {
       const jobs = sitemap.map((x) => {
         const url = x.url;
         const uuid = uuidv4();
