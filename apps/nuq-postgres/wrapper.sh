@@ -49,6 +49,20 @@ if [ -f "$POSTGRES_CONF_FILE" ] && [ ! -f "$SSL_DIR/server.crt" ]; then
   bash "$INIT_SSL_SCRIPT"
 fi
 
+# Configure pg_cron to use the correct database name dynamically
+# This allows the image to work with any database name (postgres, railway, etc.)
+PG_MAJOR="${PG_MAJOR:-17}"
+CONF_SAMPLE="/usr/share/postgresql/${PG_MAJOR}/postgresql.conf.sample"
+if [ -f "$CONF_SAMPLE" ]; then
+  # Use POSTGRES_DB if set, otherwise default to 'postgres'
+  CRON_DB_NAME="${POSTGRES_DB:-postgres}"
+  # Only add if not already present
+  if ! grep -q "cron.database_name" "$CONF_SAMPLE"; then
+    echo "Configuring pg_cron to use database: $CRON_DB_NAME"
+    printf "\n# Added for pg_cron\ncron.database_name = '%s'\n" "$CRON_DB_NAME" >> "$CONF_SAMPLE"
+  fi
+fi
+
 # unset PGHOST to force psql to use Unix socket path
 # this is specific to Railway and allows
 # us to use PGHOST after the init

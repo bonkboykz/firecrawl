@@ -21,10 +21,10 @@ RUN echo "postgres ALL=(root) NOPASSWD: /usr/bin/mkdir, /bin/chown, /usr/bin/ope
 
 # Ensure pg_cron is preloaded on first startup by modifying the initdb template
 # This must be set before the first server start (init scripts run after start)
+# Note: cron.database_name will be set dynamically in wrapper.sh based on POSTGRES_DB
 RUN set -eux; \
     conf_sample="/usr/share/postgresql/${PG_MAJOR}/postgresql.conf.sample"; \
-    sed -ri "s/^#?shared_preload_libraries\s*=.*/shared_preload_libraries = 'pg_cron'/" "$conf_sample"; \
-    printf "\n# Added for pg_cron\ncron.database_name = 'postgres'\n" >> "$conf_sample"
+    sed -ri "s/^#?shared_preload_libraries\s*=.*/shared_preload_libraries = 'pg_cron'/" "$conf_sample"
 
 # Copy Railway SSL management scripts with executable permissions
 COPY --chmod=755 init-ssl.sh /docker-entrypoint-initdb.d/init-ssl.sh
